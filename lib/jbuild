@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(library
+ ((name oleveldb_lib)
+  (public_name oleveldb_lib)
+  (libraries (core
+  	      stdint
+	      oleveldb_lib.util
+	      ))
+  ))
