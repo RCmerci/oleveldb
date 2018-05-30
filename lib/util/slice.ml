@@ -81,3 +81,6 @@ let get_exn t n = Option.value_exn (get t n)
 let set t n c =
   assert (n < t.pos) ;
   t.buf.[n] <- c
+
+
+let copy t = {buf= t.buf; pos= t.pos; len= t.len}

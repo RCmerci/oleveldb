@@ -83,9 +83,199 @@ let decode_varint32 src : uint32 option =
   aux (of_int 0) 0
 
 
+let decode_varint64 src : uint64 option =
+  let open Uint64 in
+  let rec aux r shift =
+    let h = Slice.strip_head src 1 in
+    if String.length h = 0 then None
+    else
+      let h' = Char.of_string h |> Char.to_int |> of_int in
+      if land64 h' (of_int 128) <> zero then
+        let r' = lor64 (lsl64 (land64 h' (of_int 127)) shift) r in
+        aux r' Pervasives.(shift + 7)
+      else Some (lor64 (lsl64 h' shift) r)
+  in
+  aux (of_int 0) 0
+
+
+let encode_varint64 dst (v: uint64) =
+  let open Uint64 in
+  if v < lsl64 one 7 then (
+    Slice.set dst 0 (Char.of_int_exn (to_int v)) ;
+    1 )
+  else if v < lsl64 one 14 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn (to_int (land64 (lsr64 v 7) (of_int 0x7f)))) ;
+    2 )
+  else if v < lsl64 one 21 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn (to_int (land64 (lsr64 v 14) (of_int 0x7f)))) ;
+    3 )
+  else if v < lsl64 one 28 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn (to_int (land64 (lsr64 v 21) (of_int 0x7f)))) ;
+    4 )
+  else if v < lsl64 one 35 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn (to_int (land64 (lsr64 v 28) (of_int 0x7f)))) ;
+    5 )
+  else if v < lsl64 one 42 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 28) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 5
+      (Char.of_int_exn (to_int (land64 (lsr64 v 35) (of_int 0x7f)))) ;
+    6 )
+  else if v < lsl64 one 49 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 28) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 5
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 35) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 6
+      (Char.of_int_exn (to_int (land64 (lsr64 v 42) (of_int 0x7f)))) ;
+    7 )
+  else if v < lsl64 one 56 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 28) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 5
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 35) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 6
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 42) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 7
+      (Char.of_int_exn (to_int (land64 (lsr64 v 49) (of_int 0x7f)))) ;
+    8 )
+  else if v < lsl64 one 63 then (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 28) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 5
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 35) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 6
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 42) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 7
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 49) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 8
+      (Char.of_int_exn (to_int (land64 (lsr64 v 56) (of_int 0x7f)))) ;
+    9 )
+  else (
+    Slice.set dst 0
+      (Char.of_int_exn (to_int (lor64 (land64 v (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 1
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 7) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 2
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 14) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 3
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 21) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 4
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 28) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 5
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 35) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 6
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 42) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 7
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 49) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 8
+      (Char.of_int_exn
+         (to_int (lor64 (land64 (lsr64 v 56) (of_int 0x7f)) (of_int 128)))) ;
+    Slice.set dst 9
+      (Char.of_int_exn (to_int (land64 (lsr64 v 63) (of_int 0x7f)))) ;
+    10 )
+
+
 let append_varint32 dst v =
   let buf = Slice.from_string (String.make 5 '\000') in
   let len = encode_varint32 buf v in
+  Slice.to_substring buf 0 len |> Slice.add_string dst
+
+
+let append_varint64 dst v =
+  let buf = Slice.from_string (String.make 10 '\000') in
+  let len = encode_varint64 buf v in
   Slice.to_substring buf 0 len |> Slice.add_string dst
 
 

@@ -10,3 +10,4 @@
   (deps (test.exe))
   (action (run ${<}))
 ))
+

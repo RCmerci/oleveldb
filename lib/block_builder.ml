@@ -26,13 +26,15 @@ let create option =
 let compute_shared_key last_k k limit =
   let rec aux n =
     let open Option in
-    Slice.get last_k n
-    >>= fun c ->
-    Slice.get k n
-    >>= fun c' -> if c' = c && n + 1 < limit then aux (n + 1) else return n
+    if n >= limit then return n
+    else Slice.get last_k n
+      >>= fun c ->
+      Slice.get k n >>= fun c' -> if c' = c then aux (n + 1) else return n
   in
-  Option.value_exn (aux 0)
+  Option.value (aux 0) ~default:0
 
+
+let reset t = create t.option
 
 let add t k v =
   assert (not t.finished) ;
@@ -61,3 +63,10 @@ let finish t =
   append_fix32 t.buffer (Uint32.of_int (List.length t.restarts)) ;
   t.finished <- true ;
   t.buffer
+
+
+let current_size_estimate t =
+  Slice.length t.buffer + List.length t.restarts * 4 + 4
+
+
+let is_empty t = Slice.length t.buffer = 0

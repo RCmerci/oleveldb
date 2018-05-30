@@ -8,15 +8,17 @@ n: data size
 bits_per_key = m/n
 k: hash function num
 *)
-type t = {bits_per_key: int; k: int}
+type t = {bits_per_key: int; k: int; hash_func: Slice.t -> uint32}
+
+let name = "bloom_filter"
+
+let bloom_hash k = Hash.murmur3_32 k 0xbc9f1d34
 
 let create bits_per_key =
   let k_ = float_of_int bits_per_key *. 0.69 |> int_of_float in
   let k = if k_ < 1 then 1 else if k_ > 30 then 30 else k_ in
-  {bits_per_key; k}
+  {bits_per_key; k; hash_func= bloom_hash}
 
-
-let bloom_hash k = Hash.murmur3_32 k 0xbc9f1d34
 
 let create_filter t (keys: Slice.t list) dst =
   let n = List.length keys in
@@ -28,7 +30,7 @@ let create_filter t (keys: Slice.t list) dst =
   Slice.add_string dst (String.make bytes '\000') ;
   Slice.add_char dst (Char.of_int_exn t.k) ;
   List.iter keys ~f:(fun k ->
-      let h = bloom_hash k in
+      let h = t.hash_func k in
       let delta =
         Uint32.(logor (shift_right_logical h 17) (shift_left h 15))
       in
@@ -54,7 +56,7 @@ let key_may_match t key bloom_filter =
     let k = Slice.get_exn bloom_filter (len - 1) |> Char.to_int in
     if k > 30 then true
     else
-      let h = bloom_hash key in
+      let h = t.hash_func key in
       let delta =
         Uint32.(logor (shift_right_logical h 17) (shift_left h 15))
       in

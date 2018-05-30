@@ -74,6 +74,52 @@ let test_log_reader_multi_part_record2 _ =
     (String.make (2 * Log_fmt.kBlockSize + 1) 'a')
 
 
+let test_bloomfilter_1 _ =
+  let t = Bloomfilter.create 10 in
+  let dst = Slice.create 10 in
+  Bloomfilter.create_filter t
+    (List.map ["key1"; "key2"; "key3"; "keykey4"] ~f:Slice.from_string)
+    dst ;
+  assert_equal [true; true; true; false; true]
+    [ Bloomfilter.key_may_match t (Slice.from_string "key1") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key2") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key3") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key4") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "keykey4") dst ]
+
+
+let test_bloomfilter_2 _ =
+  let t = Bloomfilter.create 10 in
+  let dst = Slice.from_string "233" in
+  Bloomfilter.create_filter t
+    (List.map ["key1"; "key2"; "key3"; "keykey4"] ~f:Slice.from_string)
+    dst ;
+  let _ = Slice.strip_head dst 3 in
+  assert_equal [true; true; true; false; true]
+    [ Bloomfilter.key_may_match t (Slice.from_string "key1") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key2") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key3") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "key4") dst
+    ; Bloomfilter.key_may_match t (Slice.from_string "keykey4") dst ]
+
+
+let test_table_builder_1 _ =
+  let t =
+    Table_builder.create
+      { data_block_size= 4 * 1024
+      ; file= Out_channel.create "test_table_builder_1" }
+  in
+  let add t ~k ~v =
+    Table_builder.add t (Slice.from_string k) (Slice.from_string v)
+  in
+  let t' =
+    t |> add ~k:"k1" ~v:"v1" |> add ~k:"k2" ~v:"v2" |> add ~k:"k3" ~v:"v3"
+    |> add ~k:"k4" ~v:"v4" |> add ~k:"k5" ~v:"v5" |> add ~k:"k6" ~v:"v6"
+  in
+  let t'' = Table_builder.finish t' in
+  ()
+
+
 let tmp_test _ = assert_bool "" true
 
 let suite =
@@ -85,6 +131,9 @@ let suite =
          >:: test_log_reader_multi_part_record
        ; "test_log_reader_multi_part_record2"
          >:: test_log_reader_multi_part_record2
+       ; "test_bloomfilter_1" >:: test_bloomfilter_1
+       ; "test_bloomfilter_2" >:: test_bloomfilter_2
+       ; "test_table_builder_1" >:: test_table_builder_1
        ; "tmp_test" >:: tmp_test ]
 
 

@@ -32,3 +32,5 @@ val get : t -> int -> char option
 val get_exn : t -> int -> char
 
 val set : t -> int -> char -> unit
+
+val copy : t -> t
