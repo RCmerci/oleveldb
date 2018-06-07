@@ -1,4 +1,6 @@
 module type S = sig
+  type param
+
   type t
 
   type 'a monad
@@ -19,12 +21,20 @@ module type S = sig
 
   val value : Slice.t monad
 
-  val fold : f:('r -> 'a -> 'r) -> init:'r -> 'r monad
-  (** [fold ~f ~init] , first seek to first, then iter from first to last *)
+  val fold : f:('r -> Slice.t * Slice.t -> 'r) -> init:'r -> 'r monad
+  (** [fold ~f ~init] , first seek to first, then iter from first to last.
+      f: result -> (k, v) -> result'
+*)
 
   val return : 'a -> 'a monad
 
-  val bind : 'a monad -> ('a -> 'b monad) -> 'b monad
+  val bind : 'a monad -> f:('a -> 'b monad) -> 'b monad
 
-  val run : 'a monad -> t -> 'a
+  val ( >>= ) : 'a monad -> ('a -> 'b monad) -> 'b monad
+
+  val ( >> ) : 'a monad -> ('a -> 'b) -> 'b monad
+
+  val run : 'a monad -> t -> ('a * t, string) result
+
+  val create : param -> t
 end

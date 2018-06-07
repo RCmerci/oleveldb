@@ -5,6 +5,8 @@ open Coding
 
 type config_option = {block_restart_interval: int}
 
+let default_config_option = {block_restart_interval= 16}
+
 type t =
   { buffer: Slice.t
   ; mutable restarts: int list
@@ -59,7 +61,8 @@ let add t k v =
 
 
 let finish t =
-  List.iter t.restarts ~f:(fun i -> append_fix32 t.buffer (Uint32.of_int i)) ;
+  List.iter (List.rev t.restarts) ~f:(fun i ->
+      append_fix32 t.buffer (Uint32.of_int i) ) ;
   append_fix32 t.buffer (Uint32.of_int (List.length t.restarts)) ;
   t.finished <- true ;
   t.buffer

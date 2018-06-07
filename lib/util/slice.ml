@@ -1,25 +1,30 @@
 open Core
 
-type t = {mutable buf: string; mutable pos: int; mutable len: int}
+(* slice = buf[start_pos, pos) *)
+type t =
+  { mutable buf: string
+  ; mutable start_pos: int
+  ; mutable pos: int
+  ; mutable len: int }
 
 let create n =
   let n = if n < 1 then 1 else n in
   let s = String.create n in
-  {buf= s; pos= 0; len= n}
+  {buf= s; pos= 0; len= n; start_pos= 0}
 
 
 let from_string s =
   let len = String.length s in
-  {buf= s; pos= len; len}
+  {buf= s; pos= len; len; start_pos= 0}
 
 
 let from_substring s ~pos ~len =
   let sub_s = String.sub s pos len in
   let len = String.length sub_s in
-  {buf= sub_s; pos= len; len}
+  {buf= sub_s; pos= len; len; start_pos= 0}
 
 
-let length t = t.pos
+let length t = t.pos - t.start_pos
 
 let resize t n_more =
   let new_buf = String.create (t.len + n_more) in
@@ -42,7 +47,7 @@ let add_char t c =
 
 
 let output t f =
-  let s = String.sub t.buf 0 t.pos in
+  let s = String.sub t.buf t.start_pos t.pos in
   Out_channel.output_string f s
 
 
@@ -53,34 +58,37 @@ let input t f len =
   len_
 
 
-let clear t = t.pos <- 0
+let clear t = t.pos <- t.start_pos
 
-let to_string t = String.sub t.buf 0 t.pos
+let to_string t = String.sub t.buf t.start_pos (t.pos - t.start_pos)
 
 let to_substring t ~pos ~len = to_string t |> String.sub ~pos ~len
 
 let add_slice t1 t2 = add_string t1 (to_string t2)
 
 let strip_head t n =
-  if n >= t.pos then
+  if n >= t.pos - t.start_pos then
     let r = to_string t in
     clear t ; r
   else
-    let r = String.sub t.buf 0 n in
-    let new_buf = String.sub t.buf n (t.pos - n) in
-    t.buf <- new_buf ;
-    t.pos <- t.pos - n ;
-    t.len <- String.length new_buf ;
+    let r = String.sub t.buf t.start_pos n in
+    t.start_pos <- t.start_pos + n ;
     r
 
 
-let get t n : char Option.t = if n < t.pos then Some (t.buf).[n] else None
+let strip_head_2 t n =
+  if n >= t.pos - t.start_pos then clear t else t.start_pos <- t.start_pos + n
+
+
+let get t n : char Option.t =
+  if n < t.pos - t.start_pos then Some (t.buf).[t.start_pos + n] else None
+
 
 let get_exn t n = Option.value_exn (get t n)
 
 let set t n c =
-  assert (n < t.pos) ;
-  t.buf.[n] <- c
+  assert (n < t.pos - t.start_pos) ;
+  t.buf.[t.start_pos + n] <- c
 
 
-let copy t = {buf= t.buf; pos= t.pos; len= t.len}
+let copy t = {buf= t.buf; pos= t.pos; len= t.len; start_pos= t.start_pos}

@@ -19,6 +19,8 @@ val clear : t -> unit
 val strip_head : t -> int -> string
 (** return stripped head string *)
 
+val strip_head_2 : t -> int -> unit
+
 val to_string : t -> string
 
 val to_substring : t -> pos:int -> len:int -> string

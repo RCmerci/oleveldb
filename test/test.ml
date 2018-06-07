@@ -116,8 +116,68 @@ let test_table_builder_1 _ =
     t |> add ~k:"k1" ~v:"v1" |> add ~k:"k2" ~v:"v2" |> add ~k:"k3" ~v:"v3"
     |> add ~k:"k4" ~v:"v4" |> add ~k:"k5" ~v:"v5" |> add ~k:"k6" ~v:"v6"
   in
-  let t'' = Table_builder.finish t' in
+  let _ = Table_builder.finish t' in
   ()
+
+
+let test_block_iter_1 _ =
+  let block_data =
+    Util.Block_util.gen_block
+      [ ("k0", "v0")
+      ; ("k1", "v1")
+      ; ("k2", "v2")
+      ; ("k3", "v3")
+      ; ("k4", "v4")
+      ; ("k5", "v5")
+      ; ("k6", "v6")
+      ; ("k7", "v7")
+      ; ("k8", "v8")
+      ; ("k9", "v9")
+      ; ("k10", "v10")
+      ; ("k11", "v11")
+      ; ("k12", "v12")
+      ; ("k13", "v13")
+      ; ("k14", "v14")
+      ; ("k15", "v15")
+      ; ("k16", "v16")
+      ; ("k17", "v17")
+      ; ("k18", "v18")
+      ; ("k19", "v19")
+      ; ("k20", "v20")
+      ; ("k21", "v21") ]
+  in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter in
+  let iter' = create block in
+  let m =
+    seek_to_first
+    >>= fun () ->
+    next
+    >>= fun b1 ->
+    key
+    >>= fun k1 ->
+    value
+    >>= fun v1 ->
+    seek_to_last
+    >>= fun () ->
+    prev
+    >>= fun b2 ->
+    key
+    >>= fun k_last ->
+    value
+    >>= fun v_last ->
+    return
+      ( b1
+      , Slice.to_string k1
+      , Slice.to_string v1
+      , b2
+      , Slice.to_string k_last
+      , Slice.to_string v_last )
+  in
+  let open Result in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal (true, "k0", "v0", true, "k20", "v20") v
+  | Result.Error s -> Printf.printf "%s\n" s ; assert_equal s ""
 
 
 let tmp_test _ = assert_bool "" true
@@ -134,6 +194,7 @@ let suite =
        ; "test_bloomfilter_1" >:: test_bloomfilter_1
        ; "test_bloomfilter_2" >:: test_bloomfilter_2
        ; "test_table_builder_1" >:: test_table_builder_1
+       ; "test_block_iter_1" >:: test_block_iter_1
        ; "tmp_test" >:: tmp_test ]
 
 
