@@ -20,6 +20,8 @@ let create bits_per_key =
   {bits_per_key; k; hash_func= bloom_hash}
 
 
+let dummy = create 10
+
 let create_filter t (keys: Slice.t list) dst =
   let n = List.length keys in
   let bits' = n * t.bits_per_key in

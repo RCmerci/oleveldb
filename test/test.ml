@@ -121,37 +121,15 @@ let test_table_builder_1 _ =
 
 
 let test_block_iter_1 _ =
-  let block_data =
-    Util.Block_util.gen_block
-      [ ("k0", "v0")
-      ; ("k1", "v1")
-      ; ("k2", "v2")
-      ; ("k3", "v3")
-      ; ("k4", "v4")
-      ; ("k5", "v5")
-      ; ("k6", "v6")
-      ; ("k7", "v7")
-      ; ("k8", "v8")
-      ; ("k9", "v9")
-      ; ("k10", "v10")
-      ; ("k11", "v11")
-      ; ("k12", "v12")
-      ; ("k13", "v13")
-      ; ("k14", "v14")
-      ; ("k15", "v15")
-      ; ("k16", "v16")
-      ; ("k17", "v17")
-      ; ("k18", "v18")
-      ; ("k19", "v19")
-      ; ("k20", "v20")
-      ; ("k21", "v21") ]
-  in
+  let block_data = Util.Block_util.data_block_1 in
   let block = Option.value_exn (Block.create block_data) in
-  let open Block.Iter in
+  let open Block.Iter_debug in
   let iter' = create block in
   let m =
     seek_to_first
-    >>= fun () ->
+    >>= fun _ ->
+    prev
+    >>= fun b0 ->
     next
     >>= fun b1 ->
     key
@@ -159,7 +137,7 @@ let test_block_iter_1 _ =
     value
     >>= fun v1 ->
     seek_to_last
-    >>= fun () ->
+    >>= fun _ ->
     prev
     >>= fun b2 ->
     key
@@ -167,7 +145,8 @@ let test_block_iter_1 _ =
     value
     >>= fun v_last ->
     return
-      ( b1
+      ( b0
+      , b1
       , Slice.to_string k1
       , Slice.to_string v1
       , b2
@@ -176,8 +155,130 @@ let test_block_iter_1 _ =
   in
   let open Result in
   match run m iter' with
-  | Ok (v, t) -> assert_equal (true, "k0", "v0", true, "k20", "v20") v
+  | Ok (v, t) -> assert_equal (false, true, "k1", "v1", true, "k20", "v20") v
   | Result.Error s -> Printf.printf "%s\n" s ; assert_equal s ""
+
+
+let test_block_iter_2 _ =
+  let block_data = Util.Block_util.data_block_1 in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m =
+    seek_to_last
+    >>= fun _ ->
+    next
+    >>= fun b0 ->
+    key
+    >>= fun k0 ->
+    value >>= fun v0 -> return (b0, Slice.to_string k0, Slice.to_string v0)
+  in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal (false, "k21", "v21") v
+  | Result.Error s -> assert_equal s ""
+
+
+let test_block_iter_3 _ =
+  let block_data = Util.Block_util.data_block_1 in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m =
+    seek (Slice.from_string "k17")
+    >>= fun b0 ->
+    key
+    >>= fun k0 ->
+    value
+    >>= fun v0 ->
+    next
+    >>= fun b1 ->
+    key
+    >>= fun k1 ->
+    value
+    >>= fun v1 ->
+    prev
+    >>= fun b2 ->
+    key
+    >>= fun k2 ->
+    value
+    >>= fun v2 ->
+    return
+      ( b0
+      , Slice.to_string k0
+      , Slice.to_string v0
+      , b1
+      , Slice.to_string k1
+      , Slice.to_string v1
+      , b2
+      , Slice.to_string k2
+      , Slice.to_string v2 )
+  in
+  match run m iter' with
+  | Ok (v, t) ->
+      assert_equal (true, "k17", "v17", true, "k18", "v18", true, "k17", "v17")
+        v
+  | Result.Error s -> assert_equal s ""
+
+
+let test_block_iter_4 _ =
+  let block_data = Util.Block_util.gen_block [] in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m =
+    seek_to_first
+    >>= fun b0 ->
+    seek_to_last
+    >>= fun b1 -> key >>= fun k -> return (b0, b1, Slice.to_string k)
+  in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal (false, false, "") v
+  | Result.Error s -> print_endline s ; assert_equal "" "1"
+
+
+let test_block_iter_5 _ =
+  let block_data = Util.Block_util.gen_block [("k0", "v0"); ("k2", "v2")] in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m =
+    seek (Slice.from_string "k1")
+    >>= fun b ->
+    key
+    >>= fun k ->
+    value >>= fun v -> return (b, Slice.to_string k, Slice.to_string v)
+  in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal (true, "k2", "v2") v
+  | Error s -> print_endline s ; assert_equal "" "1"
+
+
+let test_block_iter_6 _ =
+  let block_data = Util.Block_util.data_block_1 in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m =
+    next
+    >>= fun b ->
+    key
+    >>= fun k ->
+    value >>= fun v -> return (b, Slice.to_string k, Slice.to_string v)
+  in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal (true, "k0", "v0") v
+  | Error s -> print_endline s ; assert_equal "" "1"
+
+
+let test_block_iter_7 _ =
+  let block_data = Util.Block_util.data_block_1 in
+  let block = Option.value_exn (Block.create block_data) in
+  let open Block.Iter_debug in
+  let iter' = Block.create_iter_debug block in
+  let m = prev >>= fun b -> return b in
+  match run m iter' with
+  | Ok (v, t) -> assert_equal false v
+  | Error s -> print_endline s ; assert_equal "" "1"
 
 
 let tmp_test _ = assert_bool "" true
@@ -195,6 +296,12 @@ let suite =
        ; "test_bloomfilter_2" >:: test_bloomfilter_2
        ; "test_table_builder_1" >:: test_table_builder_1
        ; "test_block_iter_1" >:: test_block_iter_1
+       ; "test_block_iter_2" >:: test_block_iter_2
+       ; "test_block_iter_3" >:: test_block_iter_3
+       ; "test_block_iter_4" >:: test_block_iter_4
+       ; "test_block_iter_5" >:: test_block_iter_5
+       ; "test_block_iter_6" >:: test_block_iter_6
+       ; "test_block_iter_7" >:: test_block_iter_7
        ; "tmp_test" >:: tmp_test ]
 
 

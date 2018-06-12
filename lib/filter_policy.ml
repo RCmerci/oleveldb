@@ -7,6 +7,8 @@ module type S = sig
 
   val create : int -> t
 
+  val dummy : t
+
   val create_filter : t -> Slice.t list -> Slice.t -> unit
 
   val key_may_match : t -> Slice.t -> Slice.t -> bool

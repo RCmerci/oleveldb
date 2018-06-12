@@ -92,3 +92,9 @@ let set t n c =
 
 
 let copy t = {buf= t.buf; pos= t.pos; len= t.len; start_pos= t.start_pos}
+
+let compare t1 t2 = String.compare (to_string t1) (to_string t2)
+
+let equal t1 t2 = String.equal (to_string t1) (to_string t2)
+
+let hash t = String.hash (to_string t)

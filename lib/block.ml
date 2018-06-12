@@ -90,6 +90,7 @@ module Iter_make_raw (CMP : Cmp.S) = struct
 
 
   let get_restart_point t index =
+    assert (index <= t.n_restarts) ;
     let open Option in
     let data' = Slice.copy t.data in
     Slice.strip_head_2 data' (get_restart_offset t index) ;
@@ -149,13 +150,10 @@ module Iter_make_raw (CMP : Cmp.S) = struct
         Option.return
           ( parse_next t'
           >>= fun t_op ->
-          assert (Option.is_some t_op) ;
-          let t'' = Option.value_exn t_op in
-          return
-            (update_t t'' ~current_data_offset:t''.current_data_offset
-               ~current_data_entry_size:0
-               ~current_restart_index:t.current_restart_index ~k:"" ~v:"") ) )
-    |> of_option ~error:"seek_restart_point" |> join >>= fun t -> return ((), t)
+          match t_op with
+          | Some t'' -> return (true, t'')
+          | None -> return (false, t) ) )
+    |> of_option ~error:"seek_restart_point" |> join
 
 
   let seek_to_last t =
@@ -166,12 +164,12 @@ module Iter_make_raw (CMP : Cmp.S) = struct
       match t_op with
       | Some t' ->
           if get_next_entry_offset t' < t'.restart_offset then to_last t'
-          else return t'
-      | None -> return t
+          else return (true, t')
+      | None -> return (false, t)
     in
     Option.bind (seek_restart_point t (t.n_restarts - 1)) ~f:(fun t' ->
         Option.return (to_last t') )
-    |> of_option ~error:"seek_restart_point" |> join >>= fun t -> return ((), t)
+    |> of_option ~error:"seek_restart_point" |> join
 
 
   let search_restart_index t key =
@@ -196,7 +194,8 @@ module Iter_make_raw (CMP : Cmp.S) = struct
 
 
   (* maybe [key] is greater than any key in block,
-     then [seek] will behave like [seek_to_last]
+     then [seek] will behave like [seek_to_last],
+     except return false monad
  *)
   let seek key t =
     let open Option in
@@ -207,16 +206,16 @@ module Iter_make_raw (CMP : Cmp.S) = struct
       match t_op with
       | Some t' -> (
         match CMP.compare (Slice.from_string t'.k) key with
-        | Cmp.GT | Cmp.EQ -> return t'
+        | Cmp.GT | Cmp.EQ -> return (true, t')
         | Cmp.LT -> seek_to_key t' )
-      | None -> return t
+      | None -> return (false, t)
     in
     search_restart_index t key
     >>= (fun restart_index ->
           seek_restart_point t restart_index
           >>= fun t' -> return (seek_to_key t'))
     |> Result.of_option ~error:"search_restart_index or seek_restart_point"
-    |> Result.join |> Result.bind ~f:(fun t -> Result.return ((), t))
+    |> Result.join
 
 
   let next t =
@@ -272,7 +271,9 @@ module Iter_make_raw (CMP : Cmp.S) = struct
       let r' = f r (Slice.from_string t.k, Slice.from_string t.v) in
       next t >>= fun (exist, t') -> if exist then aux r' t' else return (r', t)
     in
-    seek_to_first t >>= fun ((), t') -> aux init t'
+    seek_to_first t
+    >>= fun (b, t') ->
+    match b with true -> aux init t' | false -> return (init, t')
 
 
   let return a t = Result.return (a, t)
@@ -287,15 +288,13 @@ module Iter_make_raw (CMP : Cmp.S) = struct
 
   let ( >> ) m f = m >>= fun a -> return (f a)
 
+  let fail s t = Error s
+
   let run m t = m t
 end
 
 module type Iter_make_S = functor (CMP : Cmp.S) -> Iterator.S
                                                    with type param = t
-
-module type Iter_make_debug_S = functor (CMP : Cmp.S) -> Iterator.S
-                                                         with type param = t
-                                                          and type t = iter_t
 
 module Iter_make_debug = Iter_make_raw
 

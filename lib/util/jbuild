@@ -3,4 +3,4 @@
 (library
  ((name oleveldb_lib_util)
   (public_name oleveldb_lib.util)
-  (libraries (core stdint))))
+  (libraries (core stdint lru))))

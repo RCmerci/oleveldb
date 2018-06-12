@@ -83,6 +83,8 @@ let decode_varint32 src : uint32 option =
   aux (of_int 0) 0
 
 
+(** this function use Slice.strip_head, so it has
+    side effects on [src] *)
 let decode_varint64 src : uint64 option =
   let open Uint64 in
   let rec aux r shift =

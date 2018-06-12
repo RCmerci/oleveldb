@@ -36,3 +36,9 @@ val get_exn : t -> int -> char
 val set : t -> int -> char -> unit
 
 val copy : t -> t
+
+val compare : t -> t -> int
+
+val equal : t -> t -> bool
+
+val hash : t -> int

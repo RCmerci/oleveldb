@@ -5,11 +5,11 @@ module type S = sig
 
   type 'a monad
 
-  val seek_to_first : unit monad
+  val seek_to_first : bool monad
 
-  val seek_to_last : unit monad
+  val seek_to_last : bool monad
 
-  val seek : Slice.t -> unit monad
+  val seek : Slice.t -> bool monad
 
   val next : bool monad
   (** if current entry is the last one, bool=false  *)
@@ -36,5 +36,8 @@ module type S = sig
 
   val run : 'a monad -> t -> ('a * t, string) result
 
+  val fail : string -> 'a monad
+
   val create : param -> t
+  (** when [create] called, [prev] return false, [next] return first entry *)
 end
