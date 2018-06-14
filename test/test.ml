@@ -281,6 +281,136 @@ let test_block_iter_7 _ =
   | Error s -> print_endline s ; assert_equal "" "1"
 
 
+let test_table_reader_1 _ =
+  let file = Util.Table_util.table_1 in
+  match Table.create file with
+  | Ok tab -> (
+      let iter = Table.create_iter tab in
+      let open Table.Two_level_iter in
+      let m =
+        next
+        >>= fun b0 ->
+        key
+        >>= fun k0 ->
+        value
+        >>= fun v0 ->
+        seek_to_first
+        >>= fun b1 ->
+        key
+        >>= fun k1 ->
+        prev
+        >>= fun b2 ->
+        seek_to_last
+        >>= fun b3 ->
+        key
+        >>= fun k3 ->
+        value
+        >>= fun v3 ->
+        prev
+        >>= fun b4 ->
+        key
+        >>= fun k4 ->
+        value
+        >>= fun v4 ->
+        return
+          ( b0
+          , Slice.to_string k0
+          , Slice.to_string v0
+          , b1
+          , Slice.to_string k1
+          , b2
+          , b3
+          , Slice.to_string k3
+          , Slice.to_string v3
+          , b4
+          , Slice.to_string k4
+          , Slice.to_string v4 )
+      in
+      match Table.Two_level_iter.run m iter with
+      | Ok (v, _) ->
+          assert_equal
+            ( true
+            , "k0"
+            , "v0"
+            , true
+            , "k0"
+            , false
+            , true
+            , "k21"
+            , "v21"
+            , true
+            , "k20"
+            , "v20" ) v
+      | _ -> assert false )
+  | _ -> assert false
+
+
+let test_table_reader_2 _ =
+  let file = Util.Table_util.table_2 in
+  match Table.create file with
+  | Ok tab -> (
+      let iter = Table.create_iter tab in
+      let open Table.Two_level_iter in
+      let m =
+        seek (Slice.from_string "k1")
+        >>= fun b0 ->
+        key
+        >>= fun k0 ->
+        value
+        >>= fun v0 ->
+        seek (Slice.from_string "k0")
+        >>= fun b1 ->
+        key
+        >>= fun k1 ->
+        value
+        >>= fun v1 ->
+        return
+          ( b0
+          , Slice.to_string k0
+          , Slice.to_string v0
+          , b1
+          , Slice.to_string k1
+          , Slice.to_string v1 )
+      in
+      match Table.Two_level_iter.run m iter with
+      | Ok (v, _) -> assert_equal (true, "k1", "v0", true, "k0", "v0") v
+      | _ -> assert false )
+  | _ -> assert false
+
+
+let test_table_reader_3 _ =
+  let file = Util.Table_util.table_2 in
+  match Table.create file with
+  | Ok tab -> (
+      let iter = Table.create_iter tab in
+      let open Table.Two_level_iter in
+      let m =
+        seek (Slice.from_string "k2")
+        >>= fun b0 ->
+        key
+        >>= fun k0 ->
+        value
+        >>= fun v0 ->
+        next
+        >>= fun b1 ->
+        key
+        >>= fun k1 ->
+        value
+        >>= fun v1 ->
+        return
+          ( b0
+          , Slice.to_string k0
+          , Slice.to_string v0
+          , b1
+          , Slice.to_string k1
+          , Slice.to_string v1 )
+      in
+      match Table.Two_level_iter.run m iter with
+      | Ok (v, _) -> assert_equal (true, "k3", "v0", true, "k3", "v1") v
+      | _ -> assert false )
+  | _ -> assert false
+
+
 let tmp_test _ = assert_bool "" true
 
 let suite =
@@ -302,6 +432,9 @@ let suite =
        ; "test_block_iter_5" >:: test_block_iter_5
        ; "test_block_iter_6" >:: test_block_iter_6
        ; "test_block_iter_7" >:: test_block_iter_7
+       ; "test_table_reader_1" >:: test_table_reader_1
+       ; "test_table_reader_2" >:: test_table_reader_2
+       ; "test_table_reader_3" >:: test_table_reader_3
        ; "tmp_test" >:: tmp_test ]
 
 

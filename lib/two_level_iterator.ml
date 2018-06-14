@@ -95,7 +95,7 @@ struct
     in
     match Index_iter.run m t.index_iter with
     | Ok ((true, t), index_t) -> Ok (true, {t with index_iter= index_t})
-    | Ok ((false, t), index_t) -> Ok (false, t)
+    | Ok ((false, t), index_t) -> Ok (false, {t with index_iter= index_t})
     | Error e -> Error e
 
 
@@ -109,7 +109,13 @@ struct
       | true -> skip_empty_data_block_backward t
     in
     match Index_iter.run m t.index_iter with
-    | Ok ((true, t), index_t) -> Ok (true, {t with index_iter= index_t})
+    | Ok ((true, t), index_t) -> (
+      match Data_iter.(run seek_to_last (Option.value_exn t.data_iter)) with
+      | Ok (true, data_t) ->
+          Ok (true, {t with index_iter= index_t; data_iter= Some data_t})
+      | Ok (false, data_t) ->
+          Ok (false, {t with index_iter= index_t; data_iter= Some data_t})
+      | Error e -> Error e )
     | Ok ((false, t), index_t) -> Ok (false, t)
     | Error e -> Error e
 
