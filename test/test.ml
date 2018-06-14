@@ -155,8 +155,8 @@ let test_block_iter_1 _ =
   in
   let open Result in
   match run m iter' with
-  | Ok (v, t) -> assert_equal (false, true, "k1", "v1", true, "k20", "v20") v
-  | Result.Error s -> Printf.printf "%s\n" s ; assert_equal s ""
+  | Ok (v, t) -> assert_equal (false, true, "k1", "v1", true, "k8", "v8") v
+  | Result.Error s -> assert false
 
 
 let test_block_iter_2 _ =
@@ -174,7 +174,7 @@ let test_block_iter_2 _ =
     value >>= fun v0 -> return (b0, Slice.to_string k0, Slice.to_string v0)
   in
   match run m iter' with
-  | Ok (v, t) -> assert_equal (false, "k21", "v21") v
+  | Ok (v, t) -> assert_equal (false, "k9", "v9") v
   | Result.Error s -> assert_equal s ""
 
 
@@ -213,6 +213,15 @@ let test_block_iter_3 _ =
       , Slice.to_string k2
       , Slice.to_string v2 )
   in
+  (* let m2 = *)
+  (*   seek (Slice.from_string "k17") *)
+  (*   >>= fun _ -> next >>= fun _ -> prev >>= fun b -> return b *)
+  (* in *)
+  (* let _ = *)
+  (*   match run m2 iter' with *)
+  (*   | Ok (v, t) -> Printf.printf "%d" t.current_data_offset *)
+  (*   | _ -> assert false *)
+  (* in *)
   match run m iter' with
   | Ok (v, t) ->
       assert_equal (true, "k17", "v17", true, "k18", "v18", true, "k17", "v17")
@@ -336,11 +345,11 @@ let test_table_reader_1 _ =
             , "k0"
             , false
             , true
-            , "k21"
-            , "v21"
+            , "k9"
+            , "v9"
             , true
-            , "k20"
-            , "v20" ) v
+            , "k8"
+            , "v8" ) v
       | _ -> assert false )
   | _ -> assert false
 
@@ -408,6 +417,51 @@ let test_table_reader_3 _ =
       match Table.Two_level_iter.run m iter with
       | Ok (v, _) -> assert_equal (true, "k3", "v0", true, "k3", "v1") v
       | _ -> assert false )
+  | Error e -> assert false
+
+
+let test_table_reader_4 _ =
+  let file = Util.Table_util.table_1 in
+  let open Result in
+  match
+    Table.create file
+    >>= fun table ->
+    of_option ~error:"Table.get" (Table.get table (Slice.from_string "k10"))
+  with
+  | Ok v -> assert_equal (Slice.to_string v) "v10"
+  | _ -> assert false
+
+
+let test_table_reader_5 _ =
+  let file = Util.Table_util.table_1 in
+  let open Result in
+  let r =
+    Table.create file
+    >>= fun table ->
+    let iter = Table.create_iter table in
+    return
+      Table.Two_level_iter.(
+        let m =
+          seek (Slice.from_string "k10")
+          >>= fun b0 ->
+          key
+          >>= fun k0 ->
+          value
+          >>= fun v0 -> return (b0, Slice.to_string k0, Slice.to_string v0)
+        in
+        run m iter)
+  in
+  match r with
+  | Ok Ok (v, _) -> assert_equal (true, "k10", "v10") v
+  | _ -> assert false
+
+
+let test_table_cache_1 _ =
+  (* make sure `sstable_1' exists *)
+  let _ = Util.Table_util.sstable_1 in
+  let table_cache = Table_cache.create Util.Table_util.dbname in
+  match Table_cache.get table_cache 1 (Slice.from_string "k10") with
+  | Ok v -> assert_equal (Slice.to_string v) "v10"
   | _ -> assert false
 
 
@@ -435,6 +489,9 @@ let suite =
        ; "test_table_reader_1" >:: test_table_reader_1
        ; "test_table_reader_2" >:: test_table_reader_2
        ; "test_table_reader_3" >:: test_table_reader_3
+       ; "test_table_reader_4" >:: test_table_reader_4
+       ; "test_table_reader_5" >:: test_table_reader_5
+       ; "test_table_cache_1" >:: test_table_cache_1
        ; "tmp_test" >:: tmp_test ]
 
 

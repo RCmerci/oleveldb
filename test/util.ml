@@ -5,14 +5,6 @@ open Oleveldb_lib_util
 let kv_1 =
   [ ("k0", "v0")
   ; ("k1", "v1")
-  ; ("k2", "v2")
-  ; ("k3", "v3")
-  ; ("k4", "v4")
-  ; ("k5", "v5")
-  ; ("k6", "v6")
-  ; ("k7", "v7")
-  ; ("k8", "v8")
-  ; ("k9", "v9")
   ; ("k10", "v10")
   ; ("k11", "v11")
   ; ("k12", "v12")
@@ -23,8 +15,16 @@ let kv_1 =
   ; ("k17", "v17")
   ; ("k18", "v18")
   ; ("k19", "v19")
+  ; ("k2", "v2")
   ; ("k20", "v20")
-  ; ("k21", "v21") ]
+  ; ("k21", "v21")
+  ; ("k3", "v3")
+  ; ("k4", "v4")
+  ; ("k5", "v5")
+  ; ("k6", "v6")
+  ; ("k7", "v7")
+  ; ("k8", "v8")
+  ; ("k9", "v9") ]
 
 
 let kv_2 =
@@ -99,21 +99,20 @@ module Table_util = struct
     name
 
 
-  let table_1 =
+  let make_table name kv =
     let file =
-      try In_channel.create "table_1" with Sys_error _ ->
-        let _ = gen_table_file kv_1 "table_1" in
-        In_channel.create "table_1"
+      try In_channel.create name with Sys_error _ ->
+        let _ = gen_table_file kv name in
+        In_channel.create name
     in
     file
 
 
-  let table_2 =
-    let file =
-      try In_channel.create "table_2" with Sys_error _ ->
-        let _ = gen_table_file kv_2 "table_2" in
-        In_channel.create "table_2"
-    in
-    file
+  let table_1 = make_table "table_1" kv_1
 
+  let table_2 = make_table "table_2" kv_2
+
+  let dbname = "test"
+
+  let sstable_1 = make_table (Names.table_file_name dbname 1) kv_1
 end

@@ -229,12 +229,12 @@ module Iter_make_raw (CMP : Cmp.S) = struct
     let open Result in
     let rec back_restart_index_ restart_index =
       let open Option in
-      if restart_index = 0 then return None
-      else get_restart_point t restart_index
-        >>= fun restart_point ->
-        if restart_point >= t.current_data_offset then
-          back_restart_index_ (restart_index - 1)
-        else return (return restart_index)
+      get_restart_point t restart_index
+      >>= fun restart_point ->
+      if restart_point >= t.current_data_offset then
+        if restart_index = 0 then return None
+        else back_restart_index_ (restart_index - 1)
+      else return (return restart_index)
     in
     let back_restart_index restart_index =
       back_restart_index_ restart_index

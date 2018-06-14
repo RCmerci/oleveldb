@@ -9,7 +9,8 @@ module V : Lru.Weighted with type t = Block.t = struct
   let weight _ = 1
 end
 
-(** block lru cache *)
+(** block lru cache
+    index_handle -> Block *)
 module Cache = Lru.M.Make (Slice) (V)
 
 (** TODO: better default value? *)
