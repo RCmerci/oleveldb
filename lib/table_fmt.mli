@@ -36,5 +36,5 @@ val footer_decode_from : Slice.t -> footer Option.t
 val footer_encoded_length : int64
 (** 2 * 20 + 8 *)
 
-val read_block : block_handle -> in_channel -> Slice.t
+val read_block : block_handle -> In_channel.t -> Slice.t
 (** util func for read block content  *)
