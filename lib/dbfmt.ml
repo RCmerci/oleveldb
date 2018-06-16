@@ -96,3 +96,30 @@ module Internal_key = struct
     | _ -> assert false
 
 end
+
+module Internal_key_comparator (User_comparator : Cmp.S) : Cmp.S = struct
+  let name = "internal_key_comparator"
+
+  let compare a b =
+    let akey = Internal_key.decode_from a in
+    let bkey = Internal_key.decode_from b in
+    match
+      User_comparator.compare
+        (Internal_key.get_user_key akey)
+        (Internal_key.get_user_key bkey)
+    with
+    | Cmp.GT | Cmp.LT as r -> r
+    | Cmp.EQ as r ->
+        let a' = Slice.copy a in
+        let b' = Slice.copy b in
+        Slice.strip_head_2 a' (Slice.length a' - 8) ;
+        let anum = Coding.decode_fix64 a' in
+        let bnum = Coding.decode_fix64 b' in
+        assert (Option.is_some anum) ;
+        assert (Option.is_some bnum) ;
+        let r =
+          Uint64.compare (Option.value_exn anum) (Option.value_exn bnum)
+        in
+        if r = 0 then Cmp.EQ else if r < 0 then Cmp.LT else Cmp.GT
+
+end

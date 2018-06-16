@@ -292,10 +292,10 @@ let test_block_iter_7 _ =
 
 let test_table_reader_1 _ =
   let file = Util.Table_util.table_1 in
-  match Table.create file with
+  match Table.Table_test.create file with
   | Ok tab -> (
-      let iter = Table.create_iter tab in
-      let open Table.Two_level_iter in
+      let iter = Table.Table_test.create_iter tab in
+      let open Table.Table_test.Two_level_iter in
       let m =
         next
         >>= fun b0 ->
@@ -335,7 +335,7 @@ let test_table_reader_1 _ =
           , Slice.to_string k4
           , Slice.to_string v4 )
       in
-      match Table.Two_level_iter.run m iter with
+      match Table.Table_test.Two_level_iter.run m iter with
       | Ok (v, _) ->
           assert_equal
             ( true
@@ -356,10 +356,10 @@ let test_table_reader_1 _ =
 
 let test_table_reader_2 _ =
   let file = Util.Table_util.table_2 in
-  match Table.create file with
+  match Table.Table_test.create file with
   | Ok tab -> (
-      let iter = Table.create_iter tab in
-      let open Table.Two_level_iter in
+      let iter = Table.Table_test.create_iter tab in
+      let open Table.Table_test.Two_level_iter in
       let m =
         seek (Slice.from_string "k1")
         >>= fun b0 ->
@@ -381,7 +381,7 @@ let test_table_reader_2 _ =
           , Slice.to_string k1
           , Slice.to_string v1 )
       in
-      match Table.Two_level_iter.run m iter with
+      match Table.Table_test.Two_level_iter.run m iter with
       | Ok (v, _) -> assert_equal (true, "k1", "v0", true, "k0", "v0") v
       | _ -> assert false )
   | _ -> assert false
@@ -389,10 +389,10 @@ let test_table_reader_2 _ =
 
 let test_table_reader_3 _ =
   let file = Util.Table_util.table_2 in
-  match Table.create file with
+  match Table.Table_test.create file with
   | Ok tab -> (
-      let iter = Table.create_iter tab in
-      let open Table.Two_level_iter in
+      let iter = Table.Table_test.create_iter tab in
+      let open Table.Table_test.Two_level_iter in
       let m =
         seek (Slice.from_string "k2")
         >>= fun b0 ->
@@ -414,7 +414,7 @@ let test_table_reader_3 _ =
           , Slice.to_string k1
           , Slice.to_string v1 )
       in
-      match Table.Two_level_iter.run m iter with
+      match Table.Table_test.Two_level_iter.run m iter with
       | Ok (v, _) -> assert_equal (true, "k3", "v0", true, "k3", "v1") v
       | _ -> assert false )
   | Error e -> assert false
@@ -424,9 +424,10 @@ let test_table_reader_4 _ =
   let file = Util.Table_util.table_1 in
   let open Result in
   match
-    Table.create file
+    Table.Table_test.create file
     >>= fun table ->
-    of_option ~error:"Table.get" (Table.get table (Slice.from_string "k10"))
+    of_option ~error:"Table.get"
+      (Table.Table_test.get table (Slice.from_string "k10"))
   with
   | Ok v -> assert_equal (Slice.to_string v) "v10"
   | _ -> assert false
@@ -436,11 +437,11 @@ let test_table_reader_5 _ =
   let file = Util.Table_util.table_1 in
   let open Result in
   let r =
-    Table.create file
+    Table.Table_test.create file
     >>= fun table ->
-    let iter = Table.create_iter table in
+    let iter = Table.Table_test.create_iter table in
     return
-      Table.Two_level_iter.(
+      Table.Table_test.Two_level_iter.(
         let m =
           seek (Slice.from_string "k10")
           >>= fun b0 ->
@@ -459,8 +460,12 @@ let test_table_reader_5 _ =
 let test_table_cache_1 _ =
   (* make sure `sstable_1' exists *)
   let _ = Util.Table_util.sstable_1 in
-  let table_cache = Table_cache.create Util.Table_util.dbname in
-  match Table_cache.get table_cache 1 (Slice.from_string "k10") with
+  let table_cache =
+    Table_cache.Table_cache_test.create Util.Table_util.dbname
+  in
+  match
+    Table_cache.Table_cache_test.get table_cache 1 (Slice.from_string "k10")
+  with
   | Ok v -> assert_equal (Slice.to_string v) "v10"
   | _ -> assert false
 

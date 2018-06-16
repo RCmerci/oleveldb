@@ -300,9 +300,6 @@ module Iter_make_debug = Iter_make_raw
 
 module Iter_make : Iter_make_S = Iter_make_raw
 
-module Iter = Iter_make (Cmp.ByteWiseComparator)
 module Iter_debug = Iter_make_debug (Cmp.ByteWiseComparator)
-
-let create_iter = Iter.create
 
 let create_iter_debug = Iter_debug.create
