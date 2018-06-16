@@ -18,11 +18,11 @@ module Internal_key : sig
   val decode_from_2 : Slice.t -> Uint64.t -> value_type -> t
   (** decode from user_key, sequence, value_type  *)
 
-  val to_slice : t -> Slice.t * t
+  val to_slice : t -> Slice.t
 
-  val get_user_key : t -> Slice.t * t
+  val get_user_key : t -> Slice.t
 
-  val get_value_type : t -> value_type * t
+  val get_value_type : t -> value_type
 
-  val get_sequence : t -> Uint64.t * t
+  val get_sequence : t -> Uint64.t
 end

@@ -24,7 +24,7 @@ module Internal_key = struct
   type parsed_t =
     {user_key: Slice.t; sequence: Uint64.t; value_type: value_type}
 
-  type t = {rep: Slice.t option; parsed_t: parsed_t option}
+  type t = {mutable rep: Slice.t option; mutable parsed_t: parsed_t option}
 
   let of_parsed_t parsed_t =
     let r = Slice.create 20 in
@@ -58,37 +58,41 @@ module Internal_key = struct
 
   let to_slice t =
     match (t.rep, t.parsed_t) with
-    | Some v, _ -> (v, t)
+    | Some v, _ -> v
     | None, Some p_t ->
         let s = of_parsed_t p_t in
-        (s, {t with rep= Some s})
+        t.rep <- Some s ;
+        s
     | _ -> assert false
 
 
   let get_user_key t =
     match (t.rep, t.parsed_t) with
-    | _, Some p_t -> (p_t.user_key, t)
+    | _, Some p_t -> p_t.user_key
     | Some s, None ->
         let parsed_t = to_parsed_t s in
-        (parsed_t.user_key, {t with parsed_t= Some parsed_t})
+        t.parsed_t <- Some parsed_t ;
+        parsed_t.user_key
     | _ -> assert false
 
 
   let get_value_type t =
     match (t.rep, t.parsed_t) with
-    | _, Some p_t -> (p_t.value_type, t)
+    | _, Some p_t -> p_t.value_type
     | Some s, None ->
         let parsed_t = to_parsed_t s in
-        (parsed_t.value_type, {t with parsed_t= Some parsed_t})
+        t.parsed_t <- Some parsed_t ;
+        parsed_t.value_type
     | _ -> assert false
 
 
   let get_sequence t =
     match (t.rep, t.parsed_t) with
-    | _, Some p_t -> (p_t.sequence, t)
+    | _, Some p_t -> p_t.sequence
     | Some s, None ->
         let parsed_t = to_parsed_t s in
-        (parsed_t.sequence, {t with parsed_t= Some parsed_t})
+        t.parsed_t <- Some parsed_t ;
+        parsed_t.sequence
     | _ -> assert false
 
 end

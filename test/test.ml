@@ -465,6 +465,40 @@ let test_table_cache_1 _ =
   | _ -> assert false
 
 
+let test_version_edit_encode_decode_1 _ =
+  let open Stdint in
+  let t : Version_edit.t =
+    { comparator= Some (Slice.from_string "233-cmp")
+    ; log_num= Some (Uint64.of_int 2333)
+    ; prev_log_num= Some (Uint64.of_int 2332)
+    ; next_file_num= Some (Uint64.of_int 666)
+    ; last_sequence= Some (Uint64.of_int 6666)
+    ; new_files=
+        [ ( 1
+          , { allowed_seeks= 0
+            ; number= Uint64.of_int 10
+            ; size= Uint64.of_int 123
+            ; smallest= Dbfmt.Internal_key.decode_from (Slice.from_string "k0")
+            ; largest= Dbfmt.Internal_key.decode_from (Slice.from_string "k9")
+            } )
+        ; ( 2
+          , { allowed_seeks= 0
+            ; number= Uint64.of_int 11
+            ; size= Uint64.of_int 124
+            ; smallest=
+                Dbfmt.Internal_key.decode_from (Slice.from_string "k00")
+            ; largest= Dbfmt.Internal_key.decode_from (Slice.from_string "k99")
+            } ) ]
+    ; deleted_files= [(1, Uint64.of_int 111); (2, Uint64.of_int 324)]
+    ; compact_pointers=
+        [ (1, Dbfmt.Internal_key.decode_from (Slice.from_string "kkk"))
+        ; (2, Dbfmt.Internal_key.decode_from (Slice.from_string "uuukkk")) ] }
+  in
+  match Version_edit.encode t |> Version_edit.decode with
+  | Some t' -> assert_equal t' t
+  | None -> assert false
+
+
 let tmp_test _ = assert_bool "" true
 
 let suite =
@@ -492,6 +526,8 @@ let suite =
        ; "test_table_reader_4" >:: test_table_reader_4
        ; "test_table_reader_5" >:: test_table_reader_5
        ; "test_table_cache_1" >:: test_table_cache_1
+       ; "test_version_edit_encode_decode_1"
+         >:: test_version_edit_encode_decode_1
        ; "tmp_test" >:: tmp_test ]
 
 
