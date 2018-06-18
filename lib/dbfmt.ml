@@ -97,7 +97,21 @@ module Internal_key = struct
 
 end
 
-module Internal_key_comparator (User_comparator : Cmp.S) : Cmp.S = struct
+module type Internal_key_comparator_S = sig
+  module User_comparator : sig
+    val name : string
+
+    val compare : Slice.t -> Slice.t -> Cmp.compare_result
+  end
+
+  val name : string
+
+  val compare : Slice.t -> Slice.t -> Cmp.compare_result
+end
+
+module Internal_key_comparator_Make (User_comparator : Cmp.S) = struct
+  module User_comparator = User_comparator
+
   let name = "internal_key_comparator"
 
   let compare a b =
@@ -109,7 +123,7 @@ module Internal_key_comparator (User_comparator : Cmp.S) : Cmp.S = struct
         (Internal_key.get_user_key bkey)
     with
     | Cmp.GT | Cmp.LT as r -> r
-    | Cmp.EQ as r ->
+    | Cmp.EQ ->
         let a' = Slice.copy a in
         let b' = Slice.copy b in
         Slice.strip_head_2 a' (Slice.length a' - 8) ;
@@ -120,6 +134,6 @@ module Internal_key_comparator (User_comparator : Cmp.S) : Cmp.S = struct
         let r =
           Uint64.compare (Option.value_exn anum) (Option.value_exn bnum)
         in
-        if r = 0 then Cmp.EQ else if r < 0 then Cmp.LT else Cmp.GT
+        if r = 0 then Cmp.EQ else if r > 0 then Cmp.LT else Cmp.GT
 
 end

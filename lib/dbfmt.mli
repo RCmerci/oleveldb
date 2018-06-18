@@ -26,3 +26,14 @@ module Internal_key : sig
 
   val get_sequence : t -> Uint64.t
 end
+
+module type Internal_key_comparator_S = sig
+  module User_comparator : Cmp.S
+
+  val name : string
+
+  val compare : Slice.t -> Slice.t -> Cmp.compare_result
+end
+
+module Internal_key_comparator_Make (User_comparator : Cmp.S) :
+  Internal_key_comparator_S

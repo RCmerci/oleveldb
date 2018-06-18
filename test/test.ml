@@ -504,6 +504,30 @@ let test_version_edit_encode_decode_1 _ =
   | None -> assert false
 
 
+let test_internal_key_comparator_1 _ =
+  let open Stdint in
+  let module M = Dbfmt.Internal_key_comparator_Make (Cmp.ByteWiseComparator) in
+  let k1 =
+    Dbfmt.Internal_key.decode_from_2 (Slice.from_string "k0")
+      (Uint64.of_int 233) Dbfmt.TYPE_DELETION
+  in
+  let k2 =
+    Dbfmt.Internal_key.decode_from_2 (Slice.from_string "k0")
+      (Uint64.of_int 234) Dbfmt.TYPE_DELETION
+  in
+  let k3 =
+    Dbfmt.Internal_key.decode_from_2 (Slice.from_string "k0")
+      (Uint64.of_int 234) Dbfmt.TYPE_SEEK
+  in
+  let r1 =
+    M.compare (Dbfmt.Internal_key.to_slice k1) (Dbfmt.Internal_key.to_slice k2)
+  in
+  let r2 =
+    M.compare (Dbfmt.Internal_key.to_slice k2) (Dbfmt.Internal_key.to_slice k3)
+  in
+  assert_equal (Cmp.GT, Cmp.GT) (r1, r2)
+
+
 let tmp_test _ = assert_bool "" true
 
 let suite =
@@ -533,6 +557,7 @@ let suite =
        ; "test_table_cache_1" >:: test_table_cache_1
        ; "test_version_edit_encode_decode_1"
          >:: test_version_edit_encode_decode_1
+       ; "test_internal_key_comparator_1" >:: test_internal_key_comparator_1
        ; "tmp_test" >:: tmp_test ]
 
 
