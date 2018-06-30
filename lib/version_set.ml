@@ -7,13 +7,11 @@ let max_bytes_for_level level =
   let rec aux r n = if n <= 1 then r else aux (10 * r) (n - 1) in
   aux r level
 
-
 (** 2M  *)
 let max_file_size = 1024 * 1024 * 2
 
 let total_file_size (files: Version_edit.file_metadata array) =
   Uint64.(Array.fold files ~init:(of_int 0) ~f:(fun r a -> a.size + r))
-
 
 module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
   open Dbfmt
@@ -35,7 +33,6 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
     let r = aux left right in
     if r = right then None else Some r
 
-
   let before_file user_key (f: Version_edit.file_metadata) =
     match
       Internal_key_cmp.User_comparator.compare user_key
@@ -44,7 +41,6 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
     | Cmp.LT -> true
     | _ -> false
 
-
   let after_file user_key (f: Version_edit.file_metadata) =
     match
       Internal_key_cmp.User_comparator.compare user_key
@@ -52,7 +48,6 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
     with
     | Cmp.GT -> true
     | _ -> false
-
 
   let some_file_overlaps_range disjoint_sorted_files
       (files: Version_edit.file_metadata array) smallest_user_key
@@ -66,7 +61,6 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
       match find_file files smallest_user_key with
       | None -> false
       | Some i -> not (before_file largest_user_key files.(i))
-
 
   let get_range (files: Version_edit.file_metadata array) =
     Array.fold files ~init:None ~f:(fun r e ->
@@ -85,7 +79,6 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
           | _, Cmp.GT -> Some (s, e.largest)
           | Cmp.LT, _ -> Some (e.smallest, l)
           | _ -> r )
-
 
   type version = {files: Version_edit.file_metadata array}
 
@@ -130,4 +123,70 @@ module Make (Internal_key_cmp : Dbfmt.Internal_key_comparator_S) = struct
     in
     aux 0 [] user_begin user_end |> Array.of_list
 
+  module Level_file_num_iterator : Iterator.S = struct
+    type param = Version_edit.file_metadata array
+
+    type t = {flist: Version_edit.file_metadata array; index: int}
+
+    type 'a monad = t -> 'a * t
+
+    let create param = {flist= param; index= 0}
+
+    let seek_to_first t =
+      if Array.length t.flist = 0 then (false, t) else (true, {t with index= 0})
+
+    let seek_to_last t =
+      let len = Array.length t.flist in
+      if len = 0 then (false, t) else (true, {t with index= len - 1})
+
+    let seek key t =
+      let open Option in
+      let r =
+        find_file t.flist key >>= fun index -> return (true, {t with index})
+      in
+      Option.value r ~default:(false, t)
+
+    let next t =
+      if t.index + 1 >= Array.length t.flist then (false, t)
+      else (true, {t with index= t.index + 1})
+
+    let prev t =
+      if t.index <= 0 then (false, t) else (true, {t with index= t.index - 1})
+
+    let key t =
+      let meta = (t.flist).(t.index) in
+      (Internal_key.to_slice meta.largest, t)
+
+    let value t =
+      let meta = (t.flist).(t.index) in
+      let buf = Slice.create 16 in
+      Coding.append_fix64 buf meta.number ;
+      Coding.append_fix64 buf meta.size ;
+      (buf, t)
+
+    let fold ~f ~init t =
+      let rec aux r t =
+        let k, _ = key t in
+        let v, _ = value t in
+        let r' = f r (k, v) in
+        let exist, t' = next t in
+        if exist then aux r' t' else (r', t)
+      in
+      let b, t' = seek_to_first t in
+      match b with true -> aux init t' | false -> (init, t')
+
+    let return a t = (a, t)
+
+    let bind m ~f t =
+      let a, t' = m t in
+      f a t'
+
+    let ( >>= ) m f = bind m ~f
+
+    let ( >> ) m f = m >>= fun a -> return (f a)
+
+    let fail s t = failwith s
+
+    let run m t = Ok (m t)
+  end
 end

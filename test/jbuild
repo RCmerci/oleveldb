@@ -2,7 +2,7 @@
 
 (executable (
   (name test)
-  (libraries (core ounit oleveldb_lib))
+  (libraries (core oUnit oleveldb_lib))
   ))
 
 (alias (
@@ -10,4 +10,3 @@
   (deps (test.exe))
   (action (run ${<}))
 ))
-
